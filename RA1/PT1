@@ -1,1 +1,94 @@
+import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
+public class AnalitzadorText {
+
+    public static void main(String[] args) {
+
+        int numCaracters = 0;
+        int numLinies = 0;
+        int numParaules = 0;
+
+        boolean dinsParaula = false;
+        boolean fitxerLlegit = false;
+        boolean ultimCaracterSaltLinia = false;
+
+        int[] frequencia = new int[65536];
+
+        try (FileReader fr = new FileReader("text.txt")) {
+
+            int c;
+
+            while ((c = fr.read()) != -1) {
+
+                char caracter = (char) c;
+                fitxerLlegit = true;
+
+               
+                if (caracter == '\n') {
+                    numLinies++;
+                    ultimCaracterSaltLinia = true;
+                } else {
+                    ultimCaracterSaltLinia = false;
+                }
+
+                
+                if (caracter != '\n' && caracter != '\r') {
+                    numCaracters++;
+                }
+
+               
+                boolean esSeparador = (caracter == ' ' || caracter == '\t'
+                        || caracter == '\n' || caracter == '\r');
+
+                if (esSeparador) {
+                    dinsParaula = false;
+                } else if (!dinsParaula) {
+                    numParaules++;
+                    dinsParaula = true;
+                }
+
+                
+                if (!esSeparador) {
+                    frequencia[caracter]++;
+                }
+            }
+
+           
+            if (fitxerLlegit && !ultimCaracterSaltLinia) {
+                numLinies++;
+            }
+
+            
+            int maxFrequencia = 0;
+            char caracterMesRepetit = ' ';
+
+            for (int i = 0; i < frequencia.length; i++) {
+                if (frequencia[i] > maxFrequencia) {
+                    maxFrequencia = frequencia[i];
+                    caracterMesRepetit = (char) i;
+                }
+            }
+
+           
+            System.out.println("Nombre de caràcters: " + numCaracters);
+            System.out.println("Nombre de línies: " + numLinies);
+            System.out.println("Nombre de paraules: " + numParaules);
+
+            if (maxFrequencia > 0) {
+                System.out.println("Caràcter més repetit: " + caracterMesRepetit
+                        + " (" + maxFrequencia + " vegades)");
+            } else {
+                System.out.println("El fitxer és buit, no hi ha cap caràcter per analitzar.");
+            }
+
+        } catch (FileNotFoundException e) {
+            System.out.println("El fitxer no existeix.");
+        } catch (IOException e) {
+            System.out.println("S'ha produït un error de lectura.");
+        } catch (SecurityException e) {
+            System.out.println("No tens permisos per accedir al fitxer.");
+        }
+    }
+}
