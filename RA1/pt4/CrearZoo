@@ -1,0 +1,78 @@
+import java.io.File;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+/**
+ * Part 1 – Crea el fitxer zoo.xml amb arrel <zoo> i diversos <animal>.
+ * Fa servir DOM: construïm l'arbre XML a memòria i després l'escrivim al fitxer.
+ */
+public class CrearZoo {
+
+    private static final String FITXER = "zoo.xml";
+
+    public static void main(String[] args) {
+        // Dades dels animals: {nom, espècie, aliment, edat}
+        String[][] animals = {
+                {"Pingüí", "Aptenodytes forsteri", "Peix", "5"},
+                {"Lleó", "Panthera leo", "Carn", "8"},
+                {"Elefant", "Loxodonta africana", "Herba", "25"},
+                {"Tigre", "Panthera tigris", "Carn", "6"},
+                {"Girafa", "Giraffa camelopardalis", "Fulles", "10"},
+                {"Llop", "Canis lupus", "Carn", "4"}
+        };
+
+        try {
+            // 1. Creem un document XML buit
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.newDocument();
+
+            // 2. Element arrel <zoo>
+            Element zoo = doc.createElement("zoo");
+            doc.appendChild(zoo);
+
+            // 3. Un <animal> per cada fila de dades
+            int id = 1;
+            for (String[] dades : animals) {
+                Element animal = doc.createElement("animal");
+                animal.setAttribute("id", String.valueOf(id++));
+
+                afegirFill(doc, animal, "nom", dades[0]);
+                afegirFill(doc, animal, "especie", dades[1]);
+                afegirFill(doc, animal, "aliment", dades[2]);
+                afegirFill(doc, animal, "edat", dades[3]);
+
+                zoo.appendChild(animal);
+            }
+
+            // 4. Escrivim l'arbre DOM al fitxer amb un Transformer
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+
+            transformer.transform(new DOMSource(doc), new StreamResult(new File(FITXER)));
+
+            System.out.println("Fitxer " + FITXER + " creat correctament amb " + animals.length + " animals.");
+
+        } catch (ParserConfigurationException | TransformerException e) {
+            System.out.println("Error creant l'XML: " + e.getMessage());
+        }
+    }
+
+    /** Crea <etiqueta>text</etiqueta> i l'afegeix com a fill de pare. */
+    private static void afegirFill(Document doc, Element pare, String etiqueta, String text) {
+        Element fill = doc.createElement(etiqueta);
+        fill.setTextContent(text);
+        pare.appendChild(fill);
+    }
+}
