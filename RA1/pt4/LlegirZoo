@@ -1,0 +1,82 @@
+import java.io.File;
+import java.io.IOException;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+/**
+ * Part 2 – Llegeix zoo.xml i mostra els animals per pantalla.
+ * Bonus: compta els animals i mostra només els que mengen "Carn".
+ */
+public class LlegirZoo {
+
+    private static final String FITXER = "zoo.xml";
+
+    public static void main(String[] args) {
+        File fitxer = new File(FITXER);
+        if (!fitxer.exists()) {
+            System.out.println("No existeix " + FITXER + ". Executa primer CrearZooXML.");
+            return;
+        }
+
+        try {
+            // 1. Carreguem tot el fitxer XML com un arbre DOM a memòria
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(fitxer);
+            doc.getDocumentElement().normalize(); // uneix nodes de text fragmentats
+
+            System.out.println("Element arrel: <" + doc.getDocumentElement().getNodeName() + ">\n");
+
+            // 2. Obtenim tots els elements <animal>
+            NodeList animals = doc.getElementsByTagName("animal");
+
+            // --- Mostrar tots els animals ---
+            System.out.println("===== TOTS ELS ANIMALS =====");
+            for (int i = 0; i < animals.getLength(); i++) {
+                Element animal = (Element) animals.item(i);
+                mostrarAnimal(animal);
+            }
+
+            // --- Bonus 1: comptar animals ---
+            System.out.println("===== RESUM =====");
+            System.out.println("Total d'animals al zoo: " + animals.getLength() + "\n");
+
+            // --- Bonus 2: només els que mengen carn ---
+            System.out.println("===== ANIMALS QUE MENGEN CARN =====");
+            int carnivors = 0;
+            for (int i = 0; i < animals.getLength(); i++) {
+                Element animal = (Element) animals.item(i);
+                if (textDe(animal, "aliment").equalsIgnoreCase("Carn")) {
+                    mostrarAnimal(animal);
+                    carnivors++;
+                }
+            }
+            System.out.println("Total de carnívors: " + carnivors);
+
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            System.out.println("Error llegint l'XML: " + e.getMessage());
+        }
+    }
+
+    /** Mostra un animal amb format llegible. */
+    private static void mostrarAnimal(Element animal) {
+        System.out.println("Animal #" + animal.getAttribute("id"));
+        System.out.println("Nom: " + textDe(animal, "nom"));
+        System.out.println("Espècie: " + textDe(animal, "especie"));
+        System.out.println("Aliment: " + textDe(animal, "aliment"));
+        System.out.println("Edat: " + textDe(animal, "edat"));
+        System.out.println();
+    }
+
+    /** Retorna el text del primer fill <etiqueta> d'un element (o "" si no hi és). */
+    private static String textDe(Element pare, String etiqueta) {
+        NodeList llista = pare.getElementsByTagName(etiqueta);
+        if (llista.getLength() == 0) return "";
+        return llista.item(0).getTextContent().trim();
+    }
+}
