@@ -1,0 +1,263 @@
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+/**
+ * Aplicació de gestió d'un catàleg de videojocs (CRUD complet)
+ * amb persistència en un fitxer binari (videojocs.dat).
+ */
+public class GestioVideojocsApp {
+
+    private static final String FITXER = "videojocs.dat";
+    private static final Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        // En arrencar, recuperem automàticament les dades del fitxer
+        ArrayList<Videojoc> videojocs = carregarVideojocs();
+
+        int opcio;
+        do {
+            mostrarMenu();
+            opcio = llegirEnter("Tria una opció: ");
+
+            switch (opcio) {
+                case 1: afegirVideojoc(videojocs); break;
+                case 2: llistarVideojocs(videojocs); break;
+                case 3: cercarPerTitol(videojocs); break;
+                case 4: actualitzarVideojoc(videojocs); break;
+                case 5: eliminarVideojoc(videojocs); break;
+                case 6:
+                    desarVideojocs(videojocs);
+                    System.out.println("Canvis desats. Sortint del programa...");
+                    break;
+                default:
+                    System.out.println("Opció incorrecta. Torna-ho a provar.");
+            }
+        } while (opcio != 6);
+
+        sc.close();
+    }
+
+    private static void mostrarMenu() {
+        System.out.println("\n===== GESTIÓ DE VIDEOJOCS =====");
+        System.out.println("1. Afegir videojoc");
+        System.out.println("2. Llistar tots els videojocs");
+        System.out.println("3. Cercar videojocs per títol");
+        System.out.println("4. Actualitzar un videojoc");
+        System.out.println("5. Eliminar un videojoc");
+        System.out.println("6. Sortir");
+    }
+
+    // ======================= CREATE =======================
+    private static void afegirVideojoc(ArrayList<Videojoc> videojocs) {
+        System.out.println("\n--- Afegir videojoc ---");
+        String titol = llegirText("Títol: ");
+        String genere = llegirText("Gènere (acció, rol, esport...): ");
+        int any = llegirEnter("Any de llançament: ");
+        String plataforma = llegirText("Plataforma (PC, PlayStation, Xbox, Switch...): ");
+        double preu = llegirDecimal("Preu: ");
+
+        videojocs.add(new Videojoc(titol, genere, any, plataforma, preu));
+        desarVideojocs(videojocs);
+        System.out.println("Videojoc afegit i desat correctament.");
+    }
+
+    // ======================= READ =======================
+    private static void llistarVideojocs(ArrayList<Videojoc> videojocs) {
+        System.out.println("\n--- Llista de videojocs ---");
+        if (videojocs.isEmpty()) {
+            System.out.println("No hi ha videojocs al catàleg.");
+            return;
+        }
+        // Mostrem un número davant de cada joc per poder-lo triar després
+        for (int i = 0; i < videojocs.size(); i++) {
+            System.out.println((i + 1) + ". " + videojocs.get(i));
+        }
+    }
+
+    private static void cercarPerTitol(ArrayList<Videojoc> videojocs) {
+        String text = llegirText("Text a cercar al títol: ").toLowerCase();
+        boolean trobat = false;
+
+        System.out.println("\n--- Resultats de la cerca ---");
+        for (int i = 0; i < videojocs.size(); i++) {
+            Videojoc v = videojocs.get(i);
+            // Coincidència parcial i sense distingir majúscules/minúscules
+            if (v.getTitol().toLowerCase().contains(text)) {
+                System.out.println((i + 1) + ". " + v);
+                trobat = true;
+            }
+        }
+        if (!trobat) {
+            System.out.println("Cap videojoc coincideix amb \"" + text + "\".");
+        }
+    }
+
+    // ======================= UPDATE =======================
+    private static void actualitzarVideojoc(ArrayList<Videojoc> videojocs) {
+        Videojoc v = seleccionarVideojoc(videojocs, "actualitzar");
+        if (v == null) return;
+
+        System.out.println("Deixa el camp buit per mantenir el valor actual.");
+
+        String titol = llegirTextOpcional("Títol [" + v.getTitol() + "]: ");
+        if (!titol.isEmpty()) v.setTitol(titol);
+
+        String genere = llegirTextOpcional("Gènere [" + v.getGenere() + "]: ");
+        if (!genere.isEmpty()) v.setGenere(genere);
+
+        Integer any = llegirEnterOpcional("Any [" + v.getAnyLlancament() + "]: ");
+        if (any != null) v.setAnyLlancament(any);
+
+        String plataforma = llegirTextOpcional("Plataforma [" + v.getPlataforma() + "]: ");
+        if (!plataforma.isEmpty()) v.setPlataforma(plataforma);
+
+        Double preu = llegirDecimalOpcional("Preu [" + v.getPreu() + "]: ");
+        if (preu != null) v.setPreu(preu);
+
+        desarVideojocs(videojocs);
+        System.out.println("Videojoc actualitzat: " + v);
+    }
+
+    // ======================= DELETE =======================
+    private static void eliminarVideojoc(ArrayList<Videojoc> videojocs) {
+        Videojoc v = seleccionarVideojoc(videojocs, "eliminar");
+        if (v == null) return;
+
+        String confirmacio = llegirText("Segur que vols eliminar \"" + v.getTitol() + "\"? (s/n): ");
+        if (confirmacio.equalsIgnoreCase("s")) {
+            videojocs.remove(v);
+            desarVideojocs(videojocs);
+            System.out.println("Videojoc eliminat.");
+        } else {
+            System.out.println("Operació cancel·lada.");
+        }
+    }
+
+    /** Mostra la llista i retorna el videojoc triat per l'usuari (o null si no és vàlid). */
+    private static Videojoc seleccionarVideojoc(ArrayList<Videojoc> videojocs, String accio) {
+        if (videojocs.isEmpty()) {
+            System.out.println("No hi ha videojocs al catàleg.");
+            return null;
+        }
+        llistarVideojocs(videojocs);
+        int num = llegirEnter("Número del videojoc a " + accio + ": ");
+        if (num < 1 || num > videojocs.size()) {
+            System.out.println("Número no vàlid.");
+            return null;
+        }
+        return videojocs.get(num - 1);
+    }
+
+    // ======================= PERSISTÈNCIA =======================
+
+    /** Llegeix tota la llista del fitxer binari. Si no existeix, retorna una llista buida. */
+    @SuppressWarnings("unchecked")
+    private static ArrayList<Videojoc> carregarVideojocs() {
+        File fitxer = new File(FITXER);
+        if (!fitxer.exists()) {
+            return new ArrayList<>();
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fitxer))) {
+            ArrayList<Videojoc> llista = (ArrayList<Videojoc>) ois.readObject();
+            System.out.println("S'han carregat " + llista.size() + " videojocs de " + FITXER);
+            return llista;
+        } catch (InvalidClassException e) {
+            System.out.println("El fitxer és d'una versió incompatible de la classe Videojoc: " + e.getMessage());
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error carregant videojocs: " + e.getMessage());
+        }
+        return new ArrayList<>();
+    }
+
+    /**
+     * Desa tota la llista al fitxer binari.
+     * Primer escrivim en un fitxer temporal i després el reanomenem: així, si el
+     * programa falla a mig escriure, no perdem el fitxer bo anterior.
+     */
+    private static void desarVideojocs(ArrayList<Videojoc> videojocs) {
+        File temporal = new File(FITXER + ".tmp");
+        File definitiu = new File(FITXER);
+
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(temporal))) {
+            oos.writeObject(videojocs);
+            oos.flush();
+        } catch (IOException e) {
+            System.out.println("Error desant videojocs: " + e.getMessage());
+            return;
+        }
+
+        // A Windows renameTo falla si el destí existeix, per això l'esborrem abans
+        if (definitiu.exists() && !definitiu.delete()) {
+            System.out.println("No s'ha pogut substituir " + FITXER);
+            return;
+        }
+        if (!temporal.renameTo(definitiu)) {
+            System.out.println("No s'ha pogut reanomenar el fitxer temporal.");
+        }
+    }
+
+    // ======================= LECTURA SEGURA DE DADES =======================
+
+    private static String llegirText(String missatge) {
+        String text;
+        do {
+            System.out.print(missatge);
+            text = sc.nextLine().trim();
+            if (text.isEmpty()) System.out.println("El camp no pot estar buit.");
+        } while (text.isEmpty());
+        return text;
+    }
+
+    private static String llegirTextOpcional(String missatge) {
+        System.out.print(missatge);
+        return sc.nextLine().trim();
+    }
+
+    private static int llegirEnter(String missatge) {
+        while (true) {
+            System.out.print(missatge);
+            try {
+                return Integer.parseInt(sc.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Has d'introduir un número enter.");
+            }
+        }
+    }
+
+    private static Integer llegirEnterOpcional(String missatge) {
+        while (true) {
+            String text = llegirTextOpcional(missatge);
+            if (text.isEmpty()) return null;
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException e) {
+                System.out.println("Has d'introduir un número enter.");
+            }
+        }
+    }
+
+    private static double llegirDecimal(String missatge) {
+        while (true) {
+            System.out.print(missatge);
+            try {
+                // Acceptem tant "19.99" com "19,99"
+                return Double.parseDouble(sc.nextLine().trim().replace(',', '.'));
+            } catch (NumberFormatException e) {
+                System.out.println("Has d'introduir un número (ex: 19.99).");
+            }
+        }
+    }
+
+    private static Double llegirDecimalOpcional(String missatge) {
+        while (true) {
+            String text = llegirTextOpcional(missatge);
+            if (text.isEmpty()) return null;
+            try {
+                return Double.parseDouble(text.replace(',', '.'));
+            } catch (NumberFormatException e) {
+                System.out.println("Has d'introduir un número (ex: 19.99).");
+            }
+        }
+    }
+}
